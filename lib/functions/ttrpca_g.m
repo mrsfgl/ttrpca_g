@@ -1,4 +1,4 @@
-function [Lx, S, obj_val] = ttrpca_g(Y, varargin)
+function [Lx, S, obj_val, times] = ttrpca_g(Y, varargin)
 % TTRPCAG Extrats low rank and sparse tensors using graph regularized 
 % tensor train robust principal component analysis.
 %
@@ -6,84 +6,101 @@ function [Lx, S, obj_val] = ttrpca_g(Y, varargin)
 % 
 
 
+sz = size(Y);
+N = ndims(Y);
+
+for i=1:N-1
+    delta(i) = min(prod(sz(1:i)), prod(sz(i+1:N)));
+end
 % Parse inputs
 param = inputParser;
-param.addParameter('max_iter', 1000);
-param.addParameter('err_tol', 1e-5);
-param.addParameter('alpha', [1,1,1,1]);
-param.addParameter('theta', [1,1,1,1]);
-param.addParameter('beta', [1e-1, 1e-1, 1e-1]);
+param.addParameter('max_iter', 100);
+param.addParameter('err_tol', 1e-2);
+delta = delta/sum(delta);
+param.addParameter('alpha', delta);
+param.addParameter('theta', delta);
+param.addParameter('lambda', 1/sqrt(max(sz)));
+param.addParameter('beta', 1/(5*std(Y(:))).*ones(1,2*N-1));
+param.addParameter('num_neighbors', 5);
+param.addParameter('ind_miss', []);
 param.parse(varargin{:});
 
 max_iter = param.Results.max_iter;
 err_tol = param.Results.err_tol;
 alpha = param.Results.alpha;
 theta = param.Results.theta;
+lambda = param.Results.lambda;
 beta_1 = param.Results.beta(1);
-beta_2 = param.Results.beta(2);
-beta_3 = param.Results.beta(3);
+beta_2 = param.Results.beta(2:N);
+beta_3 = param.Results.beta(N+1:end);
+ind_miss = param.Results.ind_miss;
 
-
-N = ndims(Y);
-sz = size(Y);
+mask_Y = ones(sz)>0;
+mask_Y(ind_miss) = ~mask_Y(ind_miss);
 
 L = zeros(sz);
-Lx = cell(1, N);
-for n=1:N
+Lx = cell(1, N-1);
+for n=1:N-1
     Lx{n} = zeros(sz);
 end
 G = Lx;
 S = zeros(sz);
-Nt = zeros(sz);
-for n = 1:N
-    Phi{n} = get_graphL_G(Y, param.Results.graph_neighbors, 'mode', n);
-    inv_Phi{n} = (theta(n)/beta_3*Phi{n}+eye(size(Phi)))^-1;
+for n = 1:N-1
+    Phi{n} = get_graphL_G(Y, param.Results.num_neighbors, 'mode', n);
+    inv_Phi{n} = (2*theta(n)/beta_3(n)*Phi{n}+eye(size(Phi{n})))^-1;
 end
 Lambda{1} = zeros(sz);
-Lambda{2} = cell(1, N);
-for n=1:N
+Lambda{2} = cell(1, N-1);
+for n=1:N-1
     Lambda{2}{n} = zeros(sz);
 end
 Lambda{3} = Lambda{2};
 
 times = [];
 iter = 1;
-obj_val = compute_obj(Y,Lx,G,S,Nt,Lambda,D,Phi,param);
+nuc_norm = num2cell(zeros(1,N));
+obj_val = compute_obj(Y,L,Lx,G,S,Lambda,Phi,param,nuc_norm);
 while true
     %% L Update
     tstart = tic;
     T2 = zeros(size(Y));
-    for n=1:4
-        T2 = T2 + beta_2*(Lx{n}+Lambda{2}{n})+beta_3*(G{n}+Lambda{3}{n});
+    for n=1:N-1
+        T2 = T2 + beta_2(n)*(Lx{n}+Lambda{2}{n})+beta_3(n)*(G{n}+Lambda{3}{n});
     end
     T1 = Y-S-Lambda{1}; 
-    L(mask_Y) = (beta_1*T1(mask_Y)+T2(mask_Y))/(beta_1+4*(beta_2+beta_3));
-    L(~mask_Y) = T2(~mask_Y)/(4*(beta_2+beta_3));
+    L(mask_Y) = (beta_1*T1(mask_Y)+T2(mask_Y))/(beta_1+sum(beta_2)+sum(beta_3));
+    L(~mask_Y) = T2(~mask_Y)/(sum(beta_2)+sum(beta_3));
     times(iter,1) = toc(tstart);
-    
+% [lobj, terms] = compute_obj(Y,L,Lx,G,S,Lambda,Phi,param,nuc_norm)
+
     %% Lx Update
     tstart = tic;
-    [Lx, nuc_norm] = soft_tt_hosvd(L, Lambda{2}, alpha, 1/beta_2);
+    [Lx, nuc_norm] = soft_tt_hosvd(L, Lambda{2}, alpha, beta_2);
     times(iter,2) = toc(tstart);
+% [lxobj, terms] = compute_obj(Y,L,Lx,G,S,Lambda,Phi,param,nuc_norm)
     
     %% G Update
-    for n=1:N
+    tstart = tic;
+    for n=1:N-1
         G{n} = inv_Phi{n}*t2m(L-Lambda{3}{n},1:n);
         G{n} = reshape(G{n}, sz);
     end
     times(iter,3) = toc(tstart);
-    
+% [gobj, terms] = compute_obj(Y,L,Lx,G,S,Lambda,Phi,param,nuc_norm)
+
     %% S Update
     tstart = tic;
     Sold = S;
-    S = soft_threshold(Y-L-Lambda{1}, 1/beta_1);
+    S = soft_threshold(Y-L-Lambda{1}, lambda/beta_1);
     times(iter,4) = toc(tstart);
+% [sobj, terms] = compute_obj(Y,L,Lx,G,S,Lambda,Phi,param,nuc_norm)
+    
     %% Dual Updates
     tstart = tic;
     temp = Y-L-S;
-    temp = norm(temp(:))/norm(Y(:));
     Lambda{1} = Lambda{1} - temp;
-    for n=1:N
+    temp = norm(temp(mask_Y))/norm(Y(mask_Y));
+    for n=1:N-1
         Lambda{2}{n} = Lambda{2}{n}+(Lx{n}-L);
         Lambda{3}{n} = Lambda{3}{n}+(G{n}-L);
     end
@@ -105,7 +122,7 @@ while true
     end
 end
 T2 = zeros(sz);
-for n=1:N
+for n=1:N-1
     T2 = T2+Lx{n};
 end
 Lx = T2/N;
@@ -116,20 +133,21 @@ function [val, term] = compute_obj(Y,L,Lx,G,S,Lambda,Phi,param,nuc_norm)
 % COMPUTE_OBJ Computes the current objective value.
 %
 % [val, term] = compute_obj(Y,L,Lx,G,S,Lambda,Phi,param,nuc_norm)
+N = length(Lx);
 alpha = param.Results.alpha;
 theta = param.Results.theta;
+lambda = param.Results.lambda;
 beta_1 = param.Results.beta(1);
-beta_2 = param.Results.beta(2);
-beta_3 = param.Results.beta(3);
-N = length(L);
+beta_2 = param.Results.beta(2:N+1);
+beta_3 = param.Results.beta(N+2:end);
 term = zeros(1,6);
 for i=1:N
     term(1) = term(1) + alpha(i)*nuc_norm{i};
     term(2) = term(2) + theta(i)*comp_gr_reg(G{i}, Phi{i}, 1:i);
-    term(5) = term(5) + beta_2/2*sum((L-Lx{i}-Lambda{2}{i}).^2,'all');
-    term(6) = term(6) + beta_3/2*sum((L-G{i}-Lambda{3}{i}).^2,'all');
+    term(5) = term(5) + beta_2(i)/2*sum((L-Lx{i}-Lambda{2}{i}).^2,'all');
+    term(6) = term(6) + beta_3(i)/2*sum((L-G{i}-Lambda{3}{i}).^2,'all');
 end
-term(3) = sum(abs(S),'all');
-term(4) = beta_1/2*sum((Y-S-L-Lambda{1}{i}).^2,'all');
+term(3) = lambda*sum(abs(S),'all');
+term(4) = beta_1/2*sum((Y-S-L-Lambda{1}).^2,'all');
 val = sum(term);
 end

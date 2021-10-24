@@ -9,13 +9,18 @@ function [L, W] = get_graphL_G(X, K, varargin)
 %   
 %   [L, W] = GET_GRAPHL_G(X, K, 'mode', m) Constructs graph for the modes
 %   until m.
+%
+%   [L, W] = GET_GRAPHL(X, K, 'num_class', n) Constructs supervised graphs
+%   based on the number of classes. The samples are assumed to be ordered
+%   with respect to class and each class is assumed to have the same number
+%   of samples.
 %   
 
 n = ndims(X);
 param = inputParser;
 param.addParameter('kernel', 'Euclidean')
 param.addParameter('num_class', 1)
-param.addParameter('mode', n)
+param.addParameter('mode', n-1)
 param.parse(varargin{:})
 
 m = param.Results.mode;
@@ -25,45 +30,33 @@ S = prod(sz(1:m));
 C = param.Results.num_class;
 
 X = reshape(X,S,[])';
+% K = min(size(X,2)-1, K);
 D = zeros(S,S);
 W = D;
 
-for s=1:S
-    for sp=1:S
-        D(s,sp) = norm(X(:,s)-X(:,sp))^2;
-    end
-end
-
 ind_knn = knnsearch(X', X', 'K', K+1);
 ind_knn = ind_knn(:,2:end);
+K = min(size(ind_knn,2), K);
+
+for s=1:S
+    for sp=1:K
+        D(s,ind_knn(s,sp)) = norm(X(:,s)-X(:,ind_knn(s,sp)))^2;
+    end
+end
+D = D+D';
 map = zeros(S);
 for s=1:S
     map(s, ind_knn(s, :)) = 1;
 end
+D(map & map') = D(map & map')/2;
 map = map | map';
+
 
 if strcmp(param.Results.kernel,'Gaussian')
     W = zeros(S);
-    W(map) = exp(-D(map)./(2*(norm(D))));
-%     dist_mat = norm(X(:))*ones(S);
-%     data = reshape(X, [], S);
-%     load neighbors.mat
-%     for i=1:S
-%         curr_zone = data(:,i);
-%         if varargin{1}
-%             [~,neighbor_ind ] = intersect(regions, neighbors{i});
-%         else
-%             neighbor_ind = 1:S;
-%         end
-%         dist_mat(i, neighbor_ind) = sum((curr_zone-data(:,neighbor_ind)).^2,1)./(norm(curr_zone)*sqrt(sum(data(:,neighbor_ind).^2,1)));
-%     end
-%     W = exp(-(triu(dist_mat)+triu(dist_mat,1)'));
-%     W = W-eye(size(W));
-%     vec = sort(W(:));
-%     vec(vec==inf)=[];
-%     W(W<.4*vec(end))=0;
-%     W = W+eye(size(W));
-% %     W = W>.4*vec(end);
+    const = floor(log10(sum(var(D))));
+    gamma = 1/(S*10^const);
+    W(map) = exp(-D(map)./gamma);
 else
     if length(K)==1
         W = map;

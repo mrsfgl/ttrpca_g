@@ -7,6 +7,10 @@ if nargin ==2
 else
     m = varargin{1};
     La = t2m(La,m);
-    val = trace(La*La'*Phi);
+    if size(La,2)>size(La,1)
+        val = trace((La*La')*Phi);
+    else
+        val = trace((La'*Phi)*La);
+    end
 end
 end

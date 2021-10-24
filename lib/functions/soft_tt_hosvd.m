@@ -4,10 +4,10 @@ function [X, nuc_norm] = soft_tt_hosvd(Y, Lambda, psi, tau)
 % using parameter tau at each mode.
 N = ndims(Y);
 sz = size(Y);
-X = cell(1,N);
+X = cell(1,N-1);
 nuc_norm = X;
-for i = 1:N
-    [X{i}, nuc_norm{i}] = soft_moden(Y-Lambda{i}, tau*psi(i), 1:i);
+for i = 1:N-1
+    [X{i}, nuc_norm{i}] = soft_moden(Y-Lambda{i}, tau(i)\psi(i), 1:i);
     X{i} = m2t(X{i}, sz, 1:i);
 end
 end

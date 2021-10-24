@@ -2,34 +2,40 @@ function [L, S, N, obj_val] = ghorpca(Y, param)
 % [L, S, Nt, obj_val] = gloss(Y, param)
 % Graph Regularized Low rank plus Smooth-Sparse Decomposition
 
+% Parse inputs
+param = inputParser;
+param.addParameter('max_iter', 1000);
+param.addParameter('err_tol', 1e-7);
+param.addParameter('lambda', 1/sqrt(max(size(Y))));
+param.addParameter('psi', [1,1,1,1]);
+param.addParameter('beta', 1/(5*std(Y(:))));
+param.parse(varargin{:});
+
 N = ndims(Y);
 sz = size(Y);
-max_iter = param.max_iter;
-err_tol = param.err_tol;
-alpha = param.alpha;
-theta = param.theta;
-lambda = param.lambda;
-psi = param.psi;
+max_iter = param.Results.max_iter;
+err_tol = param.Results.err_tol;
+psi = param.Results.psi;
+beta = param.Results.beta;
+lambda = param.Results.lambda;
 beta_1 = param.beta_1;
 beta_2 = param.beta_4;
 L = cell(1, N);
 for i=1:N
-    L{i} = zeros(size(Y));
+    L{i} = zeros(sz);
 end
 La = L;
-S = zeros(size(Y));
-Nt = zeros(size(Y));
+S = zeros(sz);
 Phi = get_graphL(Y, 3, true);
 inv_Phi = ((theta/beta_2)*Phi+eye(size(Phi)))^-1;
 Lam{1} = cell(1, N);
 for i=1:N
-    Lam{1}{i} = zeros(size(Y));
+    Lam{1}{i} = zeros(sz);
 end
 Lam{2} = Lam{1};
 
 timeL = [];
 timeS = []; 
-timeN = [];
 timeDual = [];
 iter = 1;
 obj_val = compute_obj(Y,L,La,S,Nt,Lam,Phi,param);
@@ -42,7 +48,7 @@ while true
     La = graph_reg_update(L,Lam{2},inv_Phi);
     %% S Update
     tstart = tic;
-    temp1 = zeros(size(Y));
+    temp1 = zeros(sz);
     for i=1:N
         temp1 = temp1+L{i}-Lam{1}{i};
     end
@@ -51,7 +57,7 @@ while true
     timeS(end+1)=toc(tstart);
     %% N update
     tstart = tic;
-    Nt = zeros(size(Y));
+    Nt = zeros(sz);
     for i=1:N
         Nt = (beta_1/(N*beta_1+alpha)).*(Y+Lam{1}{i}-L{i}-S);
     end
@@ -83,7 +89,7 @@ while true
         break;
     end
 end
-temp = zeros(size(Y));
+temp = zeros(sz);
 for i=1:N
     temp = temp+L{i};
 end
