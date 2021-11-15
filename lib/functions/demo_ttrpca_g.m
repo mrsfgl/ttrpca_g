@@ -2,15 +2,20 @@
 dataname = 'COIL';
 miss_levels = 0;%[.8:-.2:0];
 noise_levels = 0;%[.5:-.1:0];
-gross_levels = [0.05:0.15:0.5];
-algs = {'ttrpca','ttrpca_ng'};
+gross_levels = [0.05:.15:.5];
+algs = {'horpca'};
 
 sz = 10*ones(1,4);
 r = [4]'*ones(1,3);
-lambda_list = 10.^[-1.6:.1:-.8];
+% lambda_list = 10.^[-2:.2:-.4];
+% alpha_list = 10.^[0];
+% theta_list = 10.^[-1.5:.2:-.1];
+% [X, Y, Z] = meshgrid([0.004:0.001:0.01],[0.2:.1:1],[.02:.01:.06]);
+% beta_list = [X(:), Y(:), Z(:)];
+lambda_list = 10.^[-1.6:.1:-.5];
 alpha_list = 10.^[0];
-theta_list = 10.^[-1:.1:-.5];
-[X, Y, Z] = meshgrid([0.004:0.001:0.01],[0.2:.1:1],[.02:.01:.04]);
+theta_list = 10.^[-1.2:.1:-.4];
+[X, Y, Z] = meshgrid([0.001:0.001:0.01],[.01:.01:.1],[.01:.01:.05]);
 beta_list = [X(:), Y(:), Z(:)];
 
 n_ranks = size(r,1);
@@ -27,7 +32,7 @@ parfor i=1:n_exps
         end
     end
 end
-save(['param_',dataname,'_gross_16_lin_theta_fin.mat'],'results')
+save(['param_',dataname,'_gross_16_horpca.mat'],'results')
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Older Experiments %%

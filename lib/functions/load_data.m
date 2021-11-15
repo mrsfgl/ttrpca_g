@@ -77,12 +77,19 @@ switch dataname
             end
         end
         Data = I;
-        for i=1:sz(3)
-            for j=1:sz(4)
-                I(:,:,i,j) = awgn(I(:,:,i,j),noise_level, 'measured');
-                I(:,:,i,j) = imnoise(I(:,:,i,j),'salt & pepper',gross_noise);
-            end
+%         for i=1:sz(3)
+%             for j=1:sz(4)
+%                 I(:,:,i,j) = awgn(I(:,:,i,j),noise_level, 'measured');
+%                 I(:,:,i,j) = imnoise(I(:,:,i,j),'salt & pepper',gross_noise);
+%             end
+%         end
+        if gross_noise>0
+            mask = randperm(numel(I), round(numel(I)*gross_noise));
+        else
+            mask =[];
         end
+        I(mask) = rand([length(mask),1]);
+        
         ind_miss = randperm(numel(I), round(numel(I)*miss_level));
         data.Y0 = Data;
         data.Y = I;

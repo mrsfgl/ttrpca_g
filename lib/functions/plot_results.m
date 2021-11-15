@@ -155,6 +155,7 @@ elseif matches(exp_type, 'gross')
             imagesc(squeeze(ps_ttrpca_ng(:,i,:,:,:,j)),[mnlvl,mxlvl])
         end
         figure, imagesc(squeeze(ps_ttrpca(:,:,1:length(unique(beta_list(:,1:2),'rows')),:,j)),[mnlvl,mxlvl])
+        figure, imagesc(squeeze(ps_horpca(:,:,1:length(unique(beta_list(:,1:2),'rows')),:,j)),[mnlvl,mxlvl])
     end
 end
 end
