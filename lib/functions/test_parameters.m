@@ -1,6 +1,36 @@
 function [results, data] = test_parameters(dataname, algs, alpha_list, theta_list, lambda_list, beta_list, varargin)
-% TEST_PARAMETERS Tester function for sensitivity analysis on parameters.
+% TEST_PARAMETERS Tester function for sensitivity analysis on all
+% parameters.
+% 
+% [results, data] = test_parameters(dataname, algs, alpha_list, theta_list, lambda_list, beta_list, varargin)
 %
+% Inputs: 
+% ---
+%   dataname: ID of the data used in the experiments.
+%   algs: Algorithms to be compared. e.g. 'horpca', 'ttrpca', 'ttrpca_g'
+%   alpha_list: ADMM parameters
+%   theta_list: ADMM parameters
+%   lambda_list: ADMM parameters
+%   beta_list: ADMM parameters
+% Optional Parameters:
+% ---
+%   sizes: array of sizes to initialize data. Necessary for synthetic
+%       data. default: [10,10,10,10]
+%   ranks: array of ranks to initialize data. Necessary for synthetic data.
+%       default: [4,4,4]
+%   noise_level: AWGN SNR. default: 40 dB
+%   miss_level: Pctg of unobserved entries. default: 0
+%   gross_noise: Pctg of gross noise. default: 0
+%   w_ket: Apply ket augmentation or not. default: false
+%   rnd_seed: Random seed for different initialization. default: random
+%       integer
+% 
+% Returns:
+% ---
+%   results: Struct with output statistics and corresponding parameter
+%       list.
+
+
 
 params = inputParser;
 params.addOptional('sizes', [10,10,10,10]);
@@ -8,7 +38,7 @@ params.addOptional('ranks', [4,4,4]);
 params.addParameter('noise_level', 40, @isnumeric);
 params.addParameter('miss_level', 0, @isnumeric);
 params.addParameter('gross_noise', 0.15, @isnumeric);
-params.addParameter('w_ket', true, @islogical);
+params.addParameter('w_ket', false, @islogical);
 params.addParameter('rnd_seed', randi(10^3));
 params.parse(varargin{:});
 
@@ -42,24 +72,14 @@ snr_val = zeros(num_algs, length_alpha, length_theta, length_lambda, length_beta
 ssim_val = zeros(num_algs, length_alpha, length_theta, length_lambda, length_beta);
 time = zeros(num_algs, length_alpha, length_theta, length_lambda, length_beta);
 
-% if any(matches(algs, 'HORPCA', 'IgnoreCase', true))
-%     % HORPCA
-%     alg_ind = find(matches(algs, 'HORPCA', 'IgnoreCase', true));
-%     [L,~,~,times] = horpca(data.Y, 'ind_miss', data.ind_miss);
-%     [err(alg_ind,:,:,:,:), snr_val(alg_ind,:,:,:,:), ssim_val(alg_ind,:,:,:,:)] = get_SNR(L, data.Y0);
-%     time(alg_ind,:,:,:,:) = sum(times(:));
-% end
-
 for i =1:ndims(data.Y)
     delta(i) = min(prod(sz(1:i)),prod(sz(i+1:end)));
     delta_2(i) = sz(i);
 end
 delta = delta/sum(delta);
 delta_2 = delta_2./sum(delta_2);
-% delta_2 = [0,0,0,1];
 
 for i_l = 1:length_lambda
-%     lambda = lambda_list(i_l)/(sqrt(max(size(data.Y))));
     lambda = lambda_list(i_l);
     for i_b = 1:length_beta
         beta = beta_list(i_b,:);

@@ -1,8 +1,13 @@
 function results = test_noise_miss(dataname, algs, noise_list, miss_list, gross_list)
 % TEST_NOISE_MISS Tester function for varying noise and missing data levels
-% using default parameters.
+% using default parameters of the algorithms. A smaller version of 
+% `test_parameters`.
 %
 % results = TEST_NOISE_MISS(dataname, algs, noise_list, miss_list, gross_list)
+% 
+% Returns: 
+%   results: A struct with `algs`, `errs`, `snr`, `time` and input lists
+%       for which these values were computed.
 
 length_miss = length(miss_list);
 length_noise = length(noise_list);

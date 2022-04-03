@@ -1,4 +1,15 @@
 function data = generate_syn_data(dim, ranks, varargin)
+%% synthetic data generation utility.
+%
+% data = generate_syn_data(dim, ranks, varargin)
+% Inputs: 
+% ---
+%   dim: Sizes of the output tensor.
+%   ranks: Ranks of the tensor.
+%   varargin: Whether the inherent factorization is TT- or Tucker-based
+% Returns:
+% ---
+%   data: Tensor with size `dim`.
 
 if ~isempty(varargin)
     dec_type = varargin{1};

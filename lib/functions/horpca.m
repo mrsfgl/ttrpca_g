@@ -45,6 +45,17 @@ iter = 1;
 nuc_norm = num2cell(zeros(1,N));
 obj_val = compute_obj(Y,L,Lx,S,Lambda,param.Results,nuc_norm);
 while true
+    %% Lx Update
+    tstart = tic;
+    [Lx, nuc_norm] = soft_hosvd(L, Lambda{2}, psi, 1/beta_2);
+    times(2,iter) = toc(tstart);
+    
+    %% S Update
+    tstart = tic;
+    Sold = S;
+    S = soft_threshold(Y-L-Lambda{1}, lambda/beta_1);
+    times(3,iter) = toc(tstart);
+    
     %% L Update
     tstart = tic;
     T1 = Y-S-Lambda{1};
@@ -56,17 +67,6 @@ while true
     L(mask_Y) = (beta_1*T1(mask_Y)+T2(mask_Y))/(beta_1+N*beta_2);
     L(~mask_Y) = T2(~mask_Y)/(N*beta_2);
     times(1,iter) = toc(tstart);
-    
-    %% Lx Update
-    tstart = tic;
-    [Lx, nuc_norm] = soft_hosvd(L, Lambda{2}, psi, 1/beta_2);
-    times(2,iter) = toc(tstart);
-    
-    %% S Update
-    tstart = tic;
-    Sold = S;
-    S = soft_threshold(Y-L-Lambda{1}, lambda/beta_1);
-    times(3,iter) = toc(tstart);
     
     %% Dual Updates
     tstart = tic;

@@ -1,4 +1,18 @@
-function [ msqe, psnrval, ssimval, snrval] = get_SNR( X, X0 )
+function [msqe, psnrval, ssimval, snrval] = get_SNR(X, X0)
+%% Error Measurement Utility function
+% Computes MSE, PSNR, SSIM and SNR.
+% 
+% [msqe, psnrval, ssimval, snrval] = get_SNR(X, X0)
+%
+% Inputs:
+%   X: Corrupted, or estimated data.
+%   X0: Ground truth data
+%
+% Returns:
+%   msqe: MSE
+%   psnrval: PSNR
+%   ssimval: SSIM
+%   snrval: SNR
 
 if size(X,ndims(X))==3
     tempX = reshape(X,[],3);

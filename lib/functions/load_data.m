@@ -2,6 +2,25 @@ function [data] = load_data(dataname, varargin)
 % LOAD_DATA Data loader for robust PCA.
 %
 % data = LOAD_DATA(dataname, noise_level, miss_level, gross_noise) 
+%
+% Inputs: 
+% ---
+%   dataname: ID of the data used in the experiments.
+% Optional Parameters:
+% ---
+%   sizes: array of sizes to initialize data. Necessary for synthetic
+%       data. default: [10,10,10,10]
+%   ranks: array of ranks to initialize data. Necessary for synthetic data.
+%       default: [4,4,4]
+%   noise_level: AWGN SNR. default: 40 dB
+%   miss_level: Pctg of unobserved entries. default: 0
+%   gross_noise: Pctg of gross noise. default: 0
+%   w_ket: Apply ket augmentation or not. default: false
+%   rnd_seed: Random seed for different initialization. default: random
+%       integer
+% 
+% Returns:
+% ---
 
 
 %% Parse inputs
@@ -61,11 +80,7 @@ switch dataname
         data.ind_miss = ind_miss;
         
     case 'COIL'
-        if ~isunix
-            load('M:/Documents/MATLAB/mbttda_temp/Data_file/CoilData.mat', 'Data')
-        else
-            load('/home/sofuoglu/Documents/MATLAB/mbttda_temp/Data_file/CoilData.mat', 'Data')
-        end
+        load('data/CoilData.mat', 'Data')
 
         Data = Data/max(Data,[],'all');
         Data = Data(:,:,1:2:72,1:40);
@@ -77,12 +92,6 @@ switch dataname
             end
         end
         Data = I;
-%         for i=1:sz(3)
-%             for j=1:sz(4)
-%                 I(:,:,i,j) = awgn(I(:,:,i,j),noise_level, 'measured');
-%                 I(:,:,i,j) = imnoise(I(:,:,i,j),'salt & pepper',gross_noise);
-%             end
-%         end
         if gross_noise>0
             mask = randperm(numel(I), round(numel(I)*gross_noise));
         else
@@ -97,11 +106,7 @@ switch dataname
         data.ind_miss = ind_miss;
         
     case {'lena', 'peppers', 'baboon'} 
-        if ~isunix
-            I = imread(['M:/Documents/MATLAB/ttrpca_g/data/images/',dataname,'.png']);
-        else
-            I = imread(['/home/sofuoglu/Documents/MATLAB/ttrpca_g/data/images/',dataname,'.png']);
-        end
+        I = imread(['data/images/',dataname,'.png']);
         
         I = double(imresize(I,.5))/255;
         if w_ket

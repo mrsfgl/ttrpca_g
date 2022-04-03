@@ -1,5 +1,8 @@
 function [err, psnrval, ssimval] = plot_results(results, levels, ranks, exp_type)
-
+%% Plotting utility function.
+% Current setting is for extracting phase diagrams or visualizing results
+% for parameter search.
+% Obsolete, needs maintanence for reliable results.
 n_exps = size(results,1);
 n_levels = length(levels);
 n_ranks = size(ranks,1);
@@ -46,9 +49,6 @@ for j = 1:n_levels
             [err(j,k,alg_ind),in] = min(e_horpca,[],'all','linear');
             psnrval(j,k,alg_ind) = max(ps_horpca,[],'all','linear');
             ssimval(j,k,alg_ind) = max(ssi_horpca,[],'all','linear');
-%         [l_i, be_i] = ind2sub(size(e_horpca), in);
-%         lam_h = lambda_list(l_i);
-%         bet_h = beta_list(be_i,:);
         end
 
         if any(matches(algs, 'TTRPCA','IgnoreCase',true))
@@ -65,10 +65,6 @@ for j = 1:n_levels
             [err(j,k,alg_ind),in] = min(m_e_ttrpca ,[],'all','linear');
             psnrval(j,k,alg_ind) = max(m_ps_ttrpca,[],'all','linear');
             ssimval(j,k,alg_ind) = max(m_ssi_ttrpca,[],'all','linear');
-    %         [l_i, al_i, be_i] = ind2sub(size(e_ttrpca), in);
-    %         lam_t = lambda_list(l_i);
-    %         al_t = alpha_list(al_i);
-    %         bet_t = beta_list(be_i,:);w
         end
 
         if any(matches(algs, 'TTRPCA_G', 'IgnoreCase', true))
@@ -85,11 +81,6 @@ for j = 1:n_levels
             [err(j,k,alg_ind),in] = min(m_e_ttrpca_g ,[],'all','linear');
             psnrval(j,k,alg_ind) = max(m_ps_ttrpca_g,[],'all','linear');
             ssimval(j,k,alg_ind) = max(m_ssi_ttrpca_g,[],'all','linear');
-%             [l_i, al_i, th_i, be_i] = ind2sub(size(e_ttrpca_g), in);
-%             lam_tg = lambda_list(l_i);
-%             al_tg = alpha_list(al_i);
-%             the_tg = theta_list(th_i);
-%             bet_tg = beta_list(be_i,:);
         end
         
         if any(matches(algs, 'TTRPCA_nG', 'IgnoreCase', true))
@@ -106,11 +97,6 @@ for j = 1:n_levels
             [err(j,k,alg_ind),in] = min(m_e_ttrpca_ng ,[],'all','linear');
             psnrval(j,k,alg_ind) = max(m_ps_ttrpca_ng,[],'all','linear');
             ssimval(j,k,alg_ind) = max(m_ssi_ttrpca_ng,[],'all','linear');
-%             [l_i, al_i, th_i, be_i] = ind2sub(size(e_ttrpca_ng), in);
-%             lam_tng = lambda_list(l_i);
-%             al_tng = alpha_list(al_i);
-%             the_tng = theta_list(th_i);
-%             bet_tng = beta_list(be_i,:);
         end
     end
 end
@@ -118,7 +104,7 @@ end
 if matches(exp_type, 'phase')
     for i = 1:4
         figure
-        im = imagesc(r([1,9],1), levels([1,7]),1-err(:,:,i), [0,1]);
+        im = imagesc(ranks([1,9],1), levels([1,7]), 1-err(:,:,i), [0,1]);
         title(algs{i})
         ylabel('Missing Level %%')
         xlabel('Rank')
